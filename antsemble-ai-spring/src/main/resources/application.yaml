@@ -1,0 +1,19 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: antsemble-ai-springboot-app
+logging:
+  level:
+    root: INFO
+    org.springframework.web: DEBUG
+    dev.langchain4j: DEBUG
+langchain4j:
+ # open-ai:
+  #  chat-model:
+ #     api-key: ${OPEN_AI_API_KEY}
+ #     model-name: gpt-4o-mini
+  ollama:
+    chat-model:
+      model-name: llama3.2
+      base-url: http://localhost:11434
