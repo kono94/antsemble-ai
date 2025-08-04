@@ -9,6 +9,8 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
@@ -21,6 +23,9 @@ public class ChatService {
     private final @Qualifier("openAiChatModel") ChatModel openAiChatModel;
     private final @Qualifier("ollamaChatModel") ChatModel ollamaChatModel;
     private final @Qualifier("defaultChatModel") ChatModel defaultChatModel;
+
+    @Value("classpath:/templates/football-player-generation-template.st")
+    private Resource footPlayerTemplate;
 
     private static final ChatOptions FOOTBALL_PLAYER_CHAT_OPTIONS = ChatOptions.builder().temperature(0.1).build();
 
@@ -66,18 +71,13 @@ public class ChatService {
     }
 
     public FootballPlayer generateFootballPlayer(String playerName) {
-        var promptText = """
-                Generate realistic football player statistics for {playerName}.
-                
-                Create detailed attributes based on what you know about this player or generate realistic stats if unknown.
-                Consider typical characteristics for their position and playing style.
-                """;
-
-        var promptTemplate = new PromptTemplate(promptText);
-        var prompt = promptTemplate.create(Map.of("playerName", playerName), FOOTBALL_PLAYER_CHAT_OPTIONS);
-
         var generatedPlayer = ChatClient.create(defaultChatModel)
-                .prompt(prompt)
+                .prompt()
+                .options(FOOTBALL_PLAYER_CHAT_OPTIONS)
+                .user(it -> it
+                        .text(footPlayerTemplate)
+                        .param("playerName", playerName)
+                )
                 .call()
                 .entity(FootballPlayer.class);
 
