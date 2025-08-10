@@ -1,20 +1,15 @@
 package net.lwenstrom.antsemble.service;
 
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
-import net.lwenstrom.antsemble.model.FootballPlayer;
 import net.lwenstrom.antsemble.model.Provider;
 import org.jetbrains.annotations.Nullable;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.PromptTemplate;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
-
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -23,11 +18,6 @@ public class ChatService {
     private final @Qualifier("openAiChatModel") ChatModel openAiChatModel;
     private final @Qualifier("ollamaChatModel") ChatModel ollamaChatModel;
     private final @Qualifier("defaultChatModel") ChatModel defaultChatModel;
-
-    @Value("classpath:/templates/football-player-generation-template.st")
-    private Resource footPlayerTemplate;
-
-    private static final ChatOptions FOOTBALL_PLAYER_CHAT_OPTIONS = ChatOptions.builder().temperature(0.1).build();
 
     public String chatWithOpenAI(String message) {
         return ChatClient.create(openAiChatModel)
@@ -48,19 +38,16 @@ public class ChatService {
     }
 
     public String chatWithDefault(String message) {
-        return ChatClient.create(defaultChatModel)
-                .prompt()
-                .user(message)
-                .call()
-                .content();
+        return ChatClient.create(defaultChatModel).prompt().user(message).call().content();
     }
 
     public Flux<String> streamChat(String message, @Nullable Provider provider) {
-        var model = switch (provider) {
-            case OLLAMA -> ollamaChatModel;
-            case OPENAI -> openAiChatModel;
-            case null -> defaultChatModel;
-        };
+        var model =
+                switch (provider) {
+                    case OLLAMA -> ollamaChatModel;
+                    case OPENAI -> openAiChatModel;
+                    case null -> defaultChatModel;
+                };
 
         return ChatClient.create(model)
                 .prompt()
@@ -70,58 +57,39 @@ public class ChatService {
                 .content();
     }
 
-    public FootballPlayer generateFootballPlayer(String playerName) {
-        var generatedPlayer = ChatClient.create(defaultChatModel)
-                .prompt()
-                .options(FOOTBALL_PLAYER_CHAT_OPTIONS)
-                .user(it -> it
-                        .text(footPlayerTemplate)
-                        .param("playerName", playerName)
-                )
-                .call()
-                .entity(FootballPlayer.class);
-
-        if (generatedPlayer == null) {
-            throw new IllegalStateException("Response could not be generated");
-        }
-
-        return generatedPlayer;
-    }
-
     public String analyzeWithContext(String topic, String context) {
-        var promptText = """
+        var promptText =
+                """
                 You are an expert analyst. Given the following context and topic, provide a detailed analysis.
-                
+
                 Context: {context}
                 Topic: {topic}
-                
+
                 Please provide a comprehensive analysis considering the given context.
                 """;
 
         var promptTemplate = new PromptTemplate(promptText);
         var prompt = promptTemplate.create(Map.of(
                 "context", context,
-                "topic", topic
-        ));
+                "topic", topic));
 
-        return ChatClient.create(defaultChatModel)
-                .prompt(prompt)
-                .call()
-                .content();
+        return ChatClient.create(defaultChatModel).prompt(prompt).call().content();
     }
 
     public String compareModels(String question) {
         var openAiResponse = chatWithOpenAI(question);
         var ollamaResponse = chatWithOllama(question);
 
-        return String.format("""
+        return String.format(
+                """
                 ## OpenAI Response:
                 %s
-                
+
                 ## Ollama Response:
                 %s
-                
+
                 ## Comparison Complete
-                """, openAiResponse, ollamaResponse);
+                """,
+                openAiResponse, ollamaResponse);
     }
 }
