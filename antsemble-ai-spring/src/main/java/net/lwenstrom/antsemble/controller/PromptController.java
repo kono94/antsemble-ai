@@ -2,6 +2,8 @@ package net.lwenstrom.antsemble.controller;
 
 import lombok.RequiredArgsConstructor;
 import net.lwenstrom.antsemble.model.FootballPlayer;
+import net.lwenstrom.antsemble.model.TranslationRequest;
+import net.lwenstrom.antsemble.model.TranslationResponse;
 import net.lwenstrom.antsemble.service.PromptService;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,8 +27,8 @@ public class PromptController {
     }
 
     @PostMapping("/translate")
-    public String translateText(@RequestParam String targetLanguage, @RequestBody String text) {
-        return promptService.translateText(text, targetLanguage);
+    public TranslationResponse translateText(@RequestBody TranslationRequest translationRequest) {
+        return promptService.translateText(translationRequest);
     }
 
     @GetMapping("/explain")

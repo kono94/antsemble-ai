@@ -3,6 +3,8 @@ package net.lwenstrom.antsemble.service;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import net.lwenstrom.antsemble.model.FootballPlayer;
+import net.lwenstrom.antsemble.model.TranslationRequest;
+import net.lwenstrom.antsemble.model.TranslationResponse;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.ChatOptions;
@@ -17,6 +19,9 @@ public class PromptService {
 
     private static final ChatOptions FOOTBALL_PLAYER_CHAT_OPTIONS =
             ChatOptions.builder().temperature(0.1).build();
+
+    private static final ChatOptions TRANSLATION_CHAT_OPTIONS =
+            ChatOptions.builder().topK(10).temperature(0.1).build();
 
     @Qualifier("defaultChatModel")
     private final ChatModel defaultChatModel;
@@ -60,15 +65,16 @@ public class PromptService {
                 .content();
     }
 
-    public String translateText(String text, String targetLanguage) {
+    public TranslationResponse translateText(TranslationRequest translationRequest) {
         return ChatClient.create(defaultChatModel)
                 .prompt()
+                .options(TRANSLATION_CHAT_OPTIONS)
                 .user(it -> it.text(translateTemplate)
                         .params(Map.of(
-                                "text", text,
-                                "targetLanguage", targetLanguage)))
+                                "text", translationRequest.text(),
+                                "targetLanguage", translationRequest.targetLanguage())))
                 .call()
-                .content();
+                .entity(TranslationResponse.class);
     }
 
     public String explainConcept(String concept, String audience) {
